@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const port = process.env.PORT || 5000;
 
@@ -25,11 +25,22 @@ async function run() {
 
     // collection
     const userCollection = client.db(`nextNatureNursery`).collection("users");
+    const productCollection = client
+      .db(`nextNatureNursery`)
+      .collection("products");
 
     // -------------------------user api---------------------------------
     // Route to get all users
     app.get("/users", async (req, res) => {
       const result = await userCollection.find().toArray();
+      res.send(result);
+    });
+
+    // Route to get a user by email
+    app.get("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await userCollection.findOne(query);
       res.send(result);
     });
 
@@ -70,54 +81,80 @@ async function run() {
       }
     });
 
-    // Route to get a user by email
-    app.get("/user/:email", async (req, res) => {
-      const email = req.params.email;
-      const query = { email: email };
-      const result = await userCollection.findOne(query);
-      res.send(result);
-    });
-
-    // Route to update a user by email
-    app.put("/updateUser/:email", async (req, res) => {
-      const email = req.params.email;
-      const user = req.body;
-      const query = { email: email };
-      const update = {
-        $set: {
-          name: user.name,
-          email: user.email,
-          password: user.password,
-        },
-      };
-      const result = await userCollection.updateOne(query, update);
-      res.send(result);
-    });
-
     // Route to delete a user by email
     app.delete("/deleteUser/:email", async (req, res) => {
       const email = req.params.email;
-
       // Validate the email parameter
       if (!email) {
         return res.status(400).send({ message: "Email parameter is required" });
       }
-
       try {
         const query = { email: email };
         const result = await userCollection.deleteOne(query);
-
         if (result.deletedCount === 0) {
           return res.status(404).send({ message: "User not found" });
         }
-
         res.send({ message: "User deleted successfully", result });
       } catch (error) {
         res.status(500).send({ message: "An error occurred", error });
       }
     });
 
-    // Send a ping to confirm a successful connection------------------------------
+
+    
+    // -------------------------product api---------------------------------
+    // Route to get all products
+    app.get("/products", async (req, res) => {
+      const result = await productCollection.find().toArray();
+      res.send(result);
+    });
+
+    // Route to get a product by id
+    app.get("/product/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await productCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // Route to add a product
+    app.post("/addProduct", async (req, res) => {
+      const product = req.body;
+      // Check if body is empty
+      if (!product || Object.keys(product).length === 0) {
+        return res
+          .status(400)
+          .send({ message: "Request body cannot be empty" });
+      }
+      // Check for required fields (name, email, photo, and role)
+      const { name, price, photo, category } = product;
+
+      if (!name) {
+        return res.status(400).send({ message: "Name is required" });
+      }
+      if (!price) {
+        return res.status(400).send({ message: "Price is required" });
+      }
+      if (!photo) {
+        return res.status(400).send({ message: "Photo URL is required" });
+      }
+      if (!category) {
+        return res.status(400).send({ message: "Category is required" });
+      }
+      try {
+        const query = { name: product.name };
+        const productExist = await productCollection.findOne(query);
+        if (productExist) {
+          return res.send({ message: "Product already exists" });
+        }
+        const result = await productCollection.insertOne(product);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
+
+    // Send a ping to confirm a successful connection---------------------------------------------------------
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
