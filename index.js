@@ -100,8 +100,6 @@ async function run() {
       }
     });
 
-
-    
     // -------------------------product api---------------------------------
     // Route to get all products
     app.get("/products", async (req, res) => {
@@ -109,25 +107,47 @@ async function run() {
       res.send(result);
     });
 
-    // Route to get a product by id
+    // Route to get a product by ID
     app.get("/product/:id", async (req, res) => {
       const id = req.params.id;
+      // Validate ObjectID
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).send({ message: "Invalid product ID" });
+      }
       const query = { _id: new ObjectId(id) };
-      const result = await productCollection.find(query).toArray();
-      res.send(result);
+      try {
+        const result = await productCollection.findOne(query);
+        if (!result) {
+          return res.status(404).send({ message: "Product not found" });
+        }
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
     });
 
     // Route to add a product
     app.post("/addProduct", async (req, res) => {
       const product = req.body;
+
       // Check if body is empty
       if (!product || Object.keys(product).length === 0) {
         return res
           .status(400)
           .send({ message: "Request body cannot be empty" });
       }
-      // Check for required fields (name, email, photo, and role)
-      const { name, price, photo, category } = product;
+
+      // Check for required fields
+      const {
+        name,
+        price,
+        photo,
+        category,
+        quantity,
+        rating,
+        previousPrice,
+        description,
+      } = product;
 
       if (!name) {
         return res.status(400).send({ message: "Name is required" });
@@ -141,6 +161,19 @@ async function run() {
       if (!category) {
         return res.status(400).send({ message: "Category is required" });
       }
+      if (quantity == null) {
+        return res.status(400).send({ message: "Quantity is required" });
+      }
+      if (rating == null) {
+        return res.status(400).send({ message: "Rating is required" });
+      }
+      if (previousPrice == null) {
+        return res.status(400).send({ message: "Previous Price is required" });
+      }
+      if (!description) {
+        return res.status(400).send({ message: "Description is required" });
+      }
+
       try {
         const query = { name: product.name };
         const productExist = await productCollection.findOne(query);
