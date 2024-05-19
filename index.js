@@ -24,23 +24,100 @@ async function run() {
     await client.connect();
 
     // collection
-    const userCollection = client
-      .db(`${process.env.DB_NAME}`)
-      .collection("users");
+    const userCollection = client.db(`nextNatureNursery`).collection("users");
 
-    // user api
+    // -------------------------user api---------------------------------
+    // Route to get all users
     app.get("/users", async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
 
+    // Route to add a user
     app.post("/addUser", async (req, res) => {
       const user = req.body;
-      const result = await userCollection.insertOne(user);
+      // Check if body is empty
+      if (!user || Object.keys(user).length === 0) {
+        return res
+          .status(400)
+          .send({ message: "Request body cannot be empty" });
+      }
+      // Check for required fields (name, email, photo, and role)
+      const { name, email, photo, role } = user;
+
+      if (!name) {
+        return res.status(400).send({ message: "Name is required" });
+      }
+      if (!email) {
+        return res.status(400).send({ message: "Email is required" });
+      }
+      if (!photo) {
+        return res.status(400).send({ message: "Photo URL is required" });
+      }
+      if (!role) {
+        return res.status(400).send({ message: "Role is required" });
+      }
+      try {
+        const query = { email: user.email };
+        const userExist = await userCollection.findOne(query);
+        if (userExist) {
+          return res.send({ message: "User already exists" });
+        }
+        const result = await userCollection.insertOne(user);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
+
+    // Route to get a user by email
+    app.get("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await userCollection.findOne(query);
       res.send(result);
     });
 
-    // Send a ping to confirm a successful connection
+    // Route to update a user by email
+    app.put("/updateUser/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = req.body;
+      const query = { email: email };
+      const update = {
+        $set: {
+          name: user.name,
+          email: user.email,
+          password: user.password,
+        },
+      };
+      const result = await userCollection.updateOne(query, update);
+      res.send(result);
+    });
+
+    // Route to delete a user by email
+    app.delete("/deleteUser/:email", async (req, res) => {
+      const email = req.params.email;
+
+      // Validate the email parameter
+      if (!email) {
+        return res.status(400).send({ message: "Email parameter is required" });
+      }
+
+      try {
+        const query = { email: email };
+        const result = await userCollection.deleteOne(query);
+
+        if (result.deletedCount === 0) {
+          return res.status(404).send({ message: "User not found" });
+        }
+
+        res.send({ message: "User deleted successfully", result });
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
+
+    // Send a ping to confirm a successful connection------------------------------
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
