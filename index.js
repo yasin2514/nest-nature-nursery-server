@@ -298,6 +298,23 @@ async function run() {
       }
     });
 
+    // Route to search products by name within a specific category
+    app.get("/products/category/:category/search/:name", async (req, res) => {
+      const category = req.params.category;
+      const name = req.params.name;
+
+      try {
+        const query = {
+          category: category,
+          name: { $regex: name, $options: "i" }, // Case-insensitive search
+        };
+        const products = await productCollection.find(query).toArray();
+        res.send(products);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
+
     // Send a ping to confirm a successful connection---------------------------------------------------------
     await client.db("admin").command({ ping: 1 });
     console.log(
