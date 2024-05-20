@@ -242,6 +242,61 @@ async function run() {
         res.status(500).send({ message: "An error occurred", error });
       }
     });
+    // ---------------------------product category api--------------------------------
+    // Route to get product categories with total product count
+    app.get("/products/groupedByCategory", async (req, res) => {
+      try {
+        const products = await productCollection
+          .aggregate([
+            {
+              $group: {
+                _id: "$category",
+                totalProducts: { $sum: 1 },
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                category: "$_id",
+                totalProducts: 1,
+              },
+            },
+          ])
+          .toArray();
+
+        res.send(products);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
+
+    // Route to get products by category
+    app.get("/products/category/:category", async (req, res) => {
+      const category = req.params.category;
+
+      try {
+        const products = await productCollection.find({ category }).toArray();
+        res.send(products);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
+
+    // ---------------------------product search api--------------------------------
+    // Route to search products by name
+    app.get("/products/search/:name", async (req, res) => {
+      const name = req.params.name;
+      try {
+        const query = { name: { $regex: name, $options: "i" } };
+        const products = await productCollection
+          .find(query)
+          .sort({ name: 1 })
+          .toArray();
+        res.send(products);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
 
     // Send a ping to confirm a successful connection---------------------------------------------------------
     await client.db("admin").command({ ping: 1 });
