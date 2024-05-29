@@ -126,6 +126,19 @@ async function run() {
       }
     });
 
+    // Route to get all products uploaded by a specific email
+    app.get("/products/uploadedBy/:email", async (req, res) => {
+      const email = req.params.email;
+
+      try {
+        const query = { uploadByEmail: email };
+        const products = await productCollection.find(query).toArray();
+        res.send(products);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
+
     // Route to add a product
     app.post("/addProduct", async (req, res) => {
       const product = req.body;
@@ -141,7 +154,7 @@ async function run() {
       const {
         name,
         price,
-        photo,
+        photos,
         category,
         quantity,
         rating,
@@ -155,7 +168,7 @@ async function run() {
       if (!price) {
         return res.status(400).send({ message: "Price is required" });
       }
-      if (!photo) {
+      if (!photos) {
         return res.status(400).send({ message: "Photo URL is required" });
       }
       if (!category) {
