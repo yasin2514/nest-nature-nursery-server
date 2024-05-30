@@ -28,6 +28,7 @@ async function run() {
     const productCollection = client
       .db(`nextNatureNursery`)
       .collection("products");
+    const cartCollection = client.db(`nextNatureNursery`).collection("cart");
 
     // -------------------------user api---------------------------------
     // Route to get all users
@@ -323,6 +324,46 @@ async function run() {
         };
         const products = await productCollection.find(query).toArray();
         res.send(products);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
+
+    // ---------------------------User product cart  api--------------------------------
+    // Route to post product in a user's cart
+    app.post("/addProductToCart", async (req, res) => {
+      const product = req.body;
+      // Check if body is empty
+      if (!product || Object.keys(product).length === 0) {
+        return res
+          .status(400)
+          .send({ message: "Request body cannot be empty" });
+      }
+      // Check for required fields (name, email, photo, and role)
+      const { name, quantity, userEmail, userName, photos } = product;
+      if (!name) {
+        return res.status(400).send({ message: "Name is required" });
+      }
+      if (quantity == null) {
+        return res.status(400).send({ message: "Quantity is required" });
+      }
+      if (!userEmail) {
+        return res.status(400).send({ message: "User email is required" });
+      }
+      if (!userName) {
+        return res.status(400).send({ message: "User name is required" });
+      }
+      if (!photos) {
+        return res.status(400).send({ message: "Photo URL is required" });
+      }
+      try {
+        const query = { userEmail: userEmail, name: name };
+        const productExist = await cartCollection.findOne(query);
+        if (productExist) {
+          return res.send({ message: "Product already exists in cart" });
+        }
+        const result = await cartCollection.insertOne(product);
+        res.send(result);
       } catch (error) {
         res.status(500).send({ message: "An error occurred", error });
       }
