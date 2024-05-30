@@ -330,8 +330,20 @@ async function run() {
     });
 
     // ---------------------------User product cart  api--------------------------------
+    // Route to get all products in the cart
+    app.get("/cart", async (req, res) => {
+      const result = await cartCollection.find().toArray();
+      res.send(result);
+    });
+    // Route to get all products in a user's cart
+    app.get("/cart/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { userEmail: email };
+      const result = await cartCollection.find(query).toArray();
+      res.send(result);
+    });
     // Route to post product in a user's cart
-    app.post("/addProductToCart", async (req, res) => {
+    app.post("/addCart", async (req, res) => {
       const product = req.body;
       // Check if body is empty
       if (!product || Object.keys(product).length === 0) {
@@ -364,6 +376,24 @@ async function run() {
         }
         const result = await cartCollection.insertOne(product);
         res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
+    // Route to delete a product from a user's cart
+    app.delete("/deleteCart/:id", async (req, res) => {
+      const id = req.params.id;
+      // Validate the email parameter
+      if (!id) {
+        return res.status(400).send({ message: "ID parameter is required" });
+      }
+      try {
+        const query = { _id: new ObjectId(id) };
+        const result = await cartCollection.deleteOne(query);
+        if (result.deletedCount === 0) {
+          return res.status(404).send({ message: "Product not found in cart" });
+        }
+        res.send({ message: "Product deleted successfully", result });
       } catch (error) {
         res.status(500).send({ message: "An error occurred", error });
       }
