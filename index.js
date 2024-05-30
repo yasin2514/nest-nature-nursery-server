@@ -395,13 +395,13 @@ async function run() {
     });
 
     // Route to update a product in a user's cart
-    app.patch("/updateCart/:id", async (req, res) => {
+    app.patch("/updateCartItem/:id", async (req, res) => {
       const id = req.params.id;
       const updateFields = req.body;
 
-      // Validate the email parameter
-      if (!id) {
-        return res.status(400).send({ message: "ID parameter is required" });
+      // Validate ObjectID
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).send({ message: "Invalid product ID" });
       }
 
       // Check if body is empty
@@ -410,6 +410,7 @@ async function run() {
           .status(400)
           .send({ message: "Request body cannot be empty" });
       }
+
 
       // Prepare the update document dynamically based on provided fields
 
