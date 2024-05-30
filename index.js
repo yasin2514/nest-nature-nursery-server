@@ -345,13 +345,15 @@ async function run() {
     // Route to post product in a user's cart
     app.post("/addCart", async (req, res) => {
       const product = req.body;
+
       // Check if body is empty
       if (!product || Object.keys(product).length === 0) {
         return res
           .status(400)
           .send({ message: "Request body cannot be empty" });
       }
-      // Check for required fields (name, email, photo, and role)
+
+      // Check for required fields
       const { name, quantity, userEmail, userName, photos } = product;
       if (!name) {
         return res.status(400).send({ message: "Name is required" });
@@ -368,18 +370,68 @@ async function run() {
       if (!photos) {
         return res.status(400).send({ message: "Photo URL is required" });
       }
+
       try {
         const query = { userEmail: userEmail, name: name };
-        const productExist = await cartCollection.findOne(query);
-        if (productExist) {
-          return res.send({ message: "Product already exists in cart" });
+
+        // Find the existing product in the cart
+        const productToUpdate = await cartCollection.findOne(query);
+
+        if (productToUpdate) {
+          // Update quantity if product exists
+          const updatedQuantity = productToUpdate.quantity + quantity;
+          const updateResult = await cartCollection.updateOne(query, {
+            $set: { quantity: updatedQuantity },
+          });
+          res.send(updateResult);
+        } else {
+          // Create a new product if it doesn't exist
+          const result = await cartCollection.insertOne(product);
+          res.send(result);
         }
-        const result = await cartCollection.insertOne(product);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
+
+    // Route to update a product in a user's cart
+    app.patch("/updateCart/:id", async (req, res) => {
+      const id = req.params.id;
+      const updateFields = req.body;
+
+      // Validate the email parameter
+      if (!id) {
+        return res.status(400).send({ message: "ID parameter is required" });
+      }
+
+      // Check if body is empty
+      if (!updateFields || Object.keys(updateFields).length === 0) {
+        return res
+          .status(400)
+          .send({ message: "Request body cannot be empty" });
+      }
+
+      // Prepare the update document dynamically based on provided fields
+
+      const update = { $set: {} };
+      for (const field in updateFields) {
+        if (updateFields.hasOwnProperty(field)) {
+          update.$set[field] = updateFields[field];
+        }
+      }
+
+      try {
+        const query = { _id: new ObjectId(id) };
+        const result = await cartCollection.updateOne(query, update);
+        if (result.matchedCount === 0) {
+          return res.status(404).send({ message: "Product not found in cart" });
+        }
         res.send(result);
       } catch (error) {
         res.status(500).send({ message: "An error occurred", error });
       }
     });
+
     // Route to delete a product from a user's cart
     app.delete("/deleteCart/:id", async (req, res) => {
       const id = req.params.id;
