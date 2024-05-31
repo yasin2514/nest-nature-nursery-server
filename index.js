@@ -335,6 +335,24 @@ async function run() {
       const result = await cartCollection.find().toArray();
       res.send(result);
     });
+    // Route to get a product in the cart by ID
+    app.get("/cart/:id", async (req, res) => {
+      const id = req.params.id;
+      // Validate ObjectID
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).send({ message: "Invalid product ID" });
+      }
+      const query = { _id: new ObjectId(id) };
+      try {
+        const result = await cartCollection.findOne(query);
+        if (!result) {
+          return res.status(404).send({ message: "Product not found in cart" });
+        }
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
     // Route to get all products in a user's cart
     app.get("/cart/:email", async (req, res) => {
       const email = req.params.email;
