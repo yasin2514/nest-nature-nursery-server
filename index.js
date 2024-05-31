@@ -336,7 +336,7 @@ async function run() {
       res.send(result);
     });
     // Route to get a product in the cart by ID
-    app.get("/cart/:id", async (req, res) => {
+    app.get("/cartItem/:id", async (req, res) => {
       const id = req.params.id;
       // Validate ObjectID
       if (!ObjectId.isValid(id)) {
