@@ -382,8 +382,12 @@ async function run() {
         if (productToUpdate) {
           // Update quantity if product exists
           const updatedQuantity = productToUpdate.quantity + quantity;
+          const updatedTotalAmount = updatedQuantity * product.price;
           const updateResult = await cartCollection.updateOne(query, {
-            $set: { quantity: updatedQuantity },
+            $set: {
+              quantity: updatedQuantity,
+              totalAmount: updatedTotalAmount,
+            },
           });
           res.send(updateResult);
         } else {
