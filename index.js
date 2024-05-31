@@ -345,6 +345,8 @@ async function run() {
     // Route to post product in a user's cart
     app.post("/addCart", async (req, res) => {
       const product = req.body;
+      const totalAmount = product.quantity * product.price;
+      product.totalAmount = totalAmount;
 
       // Check if body is empty
       if (!product || Object.keys(product).length === 0) {
@@ -410,7 +412,6 @@ async function run() {
           .status(400)
           .send({ message: "Request body cannot be empty" });
       }
-
 
       // Prepare the update document dynamically based on provided fields
 
