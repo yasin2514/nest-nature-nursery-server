@@ -29,7 +29,9 @@ async function run() {
       .db(`nextNatureNursery`)
       .collection("products");
     const cartCollection = client.db(`nextNatureNursery`).collection("cart");
-    const purchaseCollection = client.db(`nextNatureNursery`).collection("purchase");
+    const purchaseCollection = client
+      .db(`nextNatureNursery`)
+      .collection("purchase");
 
     // -------------------------user api---------------------------------
     // Route to get all users
@@ -584,20 +586,58 @@ async function run() {
       }
     });
 
-    // Route to get all purchases
-    app.get("/purchases", async (req, res) => {
+    // Route to get all purchase items
+    app.get("/purchasesItems", async (req, res) => {
+      try {
+        const purchases = await purchaseCollection.find().toArray();
+        const items = purchases
+          .filter((purchase) => Array.isArray(purchase.items)) // Ensure items is an array
+          .flatMap((purchase) => purchase.items); // Flatten the arrays into a single array
+        res.send(items);
+      } catch (error) {
+        console.error("Error fetching purchase items:", error);
+        res.status(500).send("Internal Server Error");
+      }
+    });
+    // Route to get all purchase items by user email
+    app.get("/purchasesItem/:email", async (req, res) => {
+      const email = req.params.email;
+      try {
+        const query = { userEmail: email };
+        const purchases = await purchaseCollection.find(query).toArray();
+        const items = purchases
+          .filter((purchase) => Array.isArray(purchase.items)) // Ensure items is an array
+          .flatMap((purchase) => purchase.items); // Flatten the arrays into a single array
+        res.send(items);
+      } catch (error) {
+        console.error("Error fetching purchase items:", error);
+        res.status(500).send("Internal Server Error");
+      }
+    });
+
+    // Route delete all purchase items
+    app.delete("/deleteAllPurchaseItems", async (req, res) => {
+      try {
+        const result = await purchaseCollection.deleteMany({});
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
+    // Route to get all payments
+    app.get("/paymentInfo", async (req, res) => {
       const result = await purchaseCollection.find().toArray();
       res.send(result);
     });
 
-    // Route to get all purchases by user email
-    app.get("/purchasesItems/:email", async (req, res) => {
+    // Route to get all payments by user email
+    app.get("/paymentInfo/:email", async (req, res) => {
       const email = req.params.email;
       const query = { userEmail: email };
       const result = await purchaseCollection.find(query).toArray();
       res.send(result);
     });
-
+    
     // Send a ping to confirm a successful connection---------------------------------------------------------
     await client.db("admin").command({ ping: 1 });
     console.log(
