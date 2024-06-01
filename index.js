@@ -512,7 +512,7 @@ async function run() {
     });
 
     // Route to delete all products from a user's cart
-    app.delete("/deleteCart/:email", async (req, res) => {
+    app.delete("/deleteAllCartItems/:email", async (req, res) => {
       const email = req.params.email;
       // Validate the email parameter
       if (!email) {
