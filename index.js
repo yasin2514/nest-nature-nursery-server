@@ -29,6 +29,7 @@ async function run() {
       .db(`nextNatureNursery`)
       .collection("products");
     const cartCollection = client.db(`nextNatureNursery`).collection("cart");
+    const purchaseCollection = client.db(`nextNatureNursery`).collection("purchase");
 
     // -------------------------user api---------------------------------
     // Route to get all users
@@ -576,7 +577,7 @@ async function run() {
       }
 
       try {
-        const result = await cartCollection.insertOne(purchase);
+        const result = await purchaseCollection.insertOne(purchase);
         res.send(result);
       } catch (error) {
         res.status(500).send({ message: "An error occurred", error });
@@ -585,7 +586,7 @@ async function run() {
 
     // Route to get all purchases
     app.get("/purchases", async (req, res) => {
-      const result = await cartCollection.find().toArray();
+      const result = await purchaseCollection.find().toArray();
       res.send(result);
     });
 
@@ -593,7 +594,7 @@ async function run() {
     app.get("/purchases/:email", async (req, res) => {
       const email = req.params.email;
       const query = { userEmail: email };
-      const result = await cartCollection.find(query).toArray();
+      const result = await purchaseCollection.find(query).toArray();
       res.send(result);
     });
 
