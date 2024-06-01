@@ -496,7 +496,7 @@ async function run() {
     // Route to delete a product from a user's cart
     app.delete("/deleteCart/:id", async (req, res) => {
       const id = req.params.id;
-      // Validate the email parameter
+      // Validate the id parameter
       if (!id) {
         return res.status(400).send({ message: "ID parameter is required" });
       }
@@ -513,7 +513,7 @@ async function run() {
     });
 
     // Route to delete all products from a user's cart
-    app.delete("/deleteAllCartItems/:email", async (req, res) => {
+    app.delete("/deleteUserCartItems/:email", async (req, res) => {
       const email = req.params.email;
       // Validate the email parameter
       if (!email) {
@@ -591,7 +591,7 @@ async function run() {
     });
 
     // Route to get all purchases by user email
-    app.get("/purchases/:email", async (req, res) => {
+    app.get("/purchasesItems/:email", async (req, res) => {
       const email = req.params.email;
       const query = { userEmail: email };
       const result = await purchaseCollection.find(query).toArray();
