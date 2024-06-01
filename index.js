@@ -81,6 +81,42 @@ async function run() {
         res.status(500).send({ message: "An error occurred", error });
       }
     });
+    // Route to update a user by email
+    app.patch("/updateUser/:email", async (req, res) => {
+      const email = req.params.email;
+      const updateFields = req.body;
+
+      // Validate the email parameter
+      if (!email) {
+        return res.status(400).send({ message: "Email parameter is required" });
+      }
+
+      // Check if body is empty
+      if (!updateFields || Object.keys(updateFields).length === 0) {
+        return res
+          .status(400)
+          .send({ message: "Request body cannot be empty" });
+      }
+
+      // Prepare the update document dynamically based on provided fields
+      const update = { $set: {} };
+      for (const field in updateFields) {
+        if (updateFields.hasOwnProperty(field)) {
+          update.$set[field] = updateFields[field];
+        }
+      }
+
+      try {
+        const query = { email: email };
+        const result = await userCollection.updateOne(query, update);
+        if (result.matchedCount === 0) {
+          return res.status(404).send({ message: "User not found" });
+        }
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
 
     // Route to delete a user by email
     app.delete("/deleteUser/:email", async (req, res) => {
