@@ -511,6 +511,54 @@ async function run() {
       }
     });
 
+
+    // -------------------------purchase api---------------------------------
+    // Route to add a purchase
+    app.post("/addPurchase", async (req, res) => {
+      const purchase = req.body;
+
+      // Check if body is empty
+      if (!purchase || Object.keys(purchase).length === 0) {
+        return res
+          .status(400)
+          .send({ message: "Request body cannot be empty" });
+      }
+
+      // Check for required fields
+      const { userEmail, paymentMethod, delivery } = purchase;
+
+      if (!userEmail) {
+        return res.status(400).send({ message: "User email is required" });
+      }
+      if (!paymentMethod) {
+        return res.status(400).send({ message: "Payment method is required" });
+      }
+      if (!delivery) {
+        return res.status(400).send({ message: "Delivery is required" });
+      }
+
+      try {
+        const result = await cartCollection.insertOne(purchase);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
+
+    // Route to get all purchases
+    app.get("/purchases", async (req, res) => {
+      const result = await cartCollection.find().toArray();
+      res.send(result);
+    });
+
+    // Route to get all purchases by user email
+    app.get("/purchases/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { userEmail: email };
+      const result = await cartCollection.find(query).toArray();
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection---------------------------------------------------------
     await client.db("admin").command({ ping: 1 });
     console.log(
