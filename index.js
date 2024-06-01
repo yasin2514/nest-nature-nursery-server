@@ -600,7 +600,7 @@ async function run() {
       }
     });
     // Route to get all purchase items by user email
-    app.get("/purchasesItem/:email", async (req, res) => {
+    app.get("/purchasesItems/:email", async (req, res) => {
       const email = req.params.email;
       try {
         const query = { userEmail: email };
@@ -637,7 +637,7 @@ async function run() {
       const result = await purchaseCollection.find(query).toArray();
       res.send(result);
     });
-    
+
     // Send a ping to confirm a successful connection---------------------------------------------------------
     await client.db("admin").command({ ping: 1 });
     console.log(
