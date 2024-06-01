@@ -511,6 +511,24 @@ async function run() {
       }
     });
 
+    // Route to delete all products from a user's cart
+    app.delete("/deleteCart/:email", async (req, res) => {
+      const email = req.params.email;
+      // Validate the email parameter
+      if (!email) {
+        return res.status(400).send({ message: "Email parameter is required" });
+      }
+      try {
+        const query = { userEmail: email };
+        const result = await cartCollection.deleteMany(query);
+        if (result.deletedCount === 0) {
+          return res.status(404).send({ message: "Cart is empty" });
+        }
+        res.send({ message: "Cart deleted successfully", result });
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
 
     // -------------------------purchase api---------------------------------
     // Route to add a purchase
@@ -525,7 +543,15 @@ async function run() {
       }
 
       // Check for required fields
-      const { userEmail, paymentMethod, delivery } = purchase;
+      const {
+        userEmail,
+        paymentMethod,
+        delivery,
+        userPhone,
+        userCity,
+        userDistrict,
+        userCountry,
+      } = purchase;
 
       if (!userEmail) {
         return res.status(400).send({ message: "User email is required" });
@@ -535,6 +561,18 @@ async function run() {
       }
       if (!delivery) {
         return res.status(400).send({ message: "Delivery is required" });
+      }
+      if (!userPhone) {
+        return res.status(400).send({ message: "User phone is required" });
+      }
+      if (!userCity) {
+        return res.status(400).send({ message: "User city is required" });
+      }
+      if (!userDistrict) {
+        return res.status(400).send({ message: "User district is required" });
+      }
+      if (!userCountry) {
+        return res.status(400).send({ message: "User country is required" });
       }
 
       try {
