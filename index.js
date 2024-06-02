@@ -3,6 +3,7 @@ const cors = require("cors");
 const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
 // Middleware
@@ -705,6 +706,23 @@ async function run() {
           return res.status(404).send({ message: "Purchase not found" });
         }
         res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
+    // ------------------------Stripe Payment Intent API--------------------------------
+
+    // Route to create a payment intent
+    app.post("/createPaymentIntent", async (req, res) => {
+      const { price } = req.body;
+      const amount = price * 100; // Convert the price to cents
+      try {
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: amount,
+          currency: "usd",
+          payment_method_types: ["card"],
+        });
+        res.send({ clientSecret: paymentIntent.client_secret });
       } catch (error) {
         res.status(500).send({ message: "An error occurred", error });
       }
