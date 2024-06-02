@@ -694,7 +694,6 @@ async function run() {
     // Route to get all payments by id
     app.get("/singlePaymentInfo/:id", async (req, res) => {
       const id = req.params.id;
-      console.log(id);
       // Validate ObjectID
       if (!ObjectId.isValid(id)) {
         return res.status(400).send({ message: "Invalid purchase ID" });
