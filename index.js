@@ -715,12 +715,12 @@ async function run() {
     // Route to create a payment intent
     app.post("/createPaymentIntent", async (req, res) => {
       const { price } = req.body;
-      const amount = price * 100; // Convert the price to cents
+      const amount = parseInt(price * 100); // Convert the price to cents
       try {
         const paymentIntent = await stripe.paymentIntents.create({
           amount: amount,
           currency: "usd",
-          payment_method_types: ["card"],
+          payment_method_types: ["card"]
         });
         res.send({ clientSecret: paymentIntent.client_secret });
       } catch (error) {
