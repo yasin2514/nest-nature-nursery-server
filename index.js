@@ -533,7 +533,36 @@ async function run() {
       }
     });
 
-    // -------------------------purchase api---------------------------------
+    // -------------------------purchase and payment api---------------------------------
+    // Route to get all purchase items
+    app.get("/purchasesItems", async (req, res) => {
+      try {
+        const purchases = await purchaseCollection.find().toArray();
+        const items = purchases
+          .filter((purchase) => Array.isArray(purchase.items)) // Ensure items is an array
+          .flatMap((purchase) => purchase.items); // Flatten the arrays into a single array
+        res.send(items);
+      } catch (error) {
+        console.error("Error fetching purchase items:", error);
+        res.status(500).send("Internal Server Error");
+      }
+    });
+    // Route to get all purchase items by user email
+    app.get("/purchasesItems/:email", async (req, res) => {
+      const email = req.params.email;
+      try {
+        const query = { userEmail: email };
+        const purchases = await purchaseCollection.find(query).toArray();
+        const items = purchases
+          .filter((purchase) => Array.isArray(purchase.items)) // Ensure items is an array
+          .flatMap((purchase) => purchase.items); // Flatten the arrays into a single array
+        res.send(items);
+      } catch (error) {
+        console.error("Error fetching purchase items:", error);
+        res.status(500).send("Internal Server Error");
+      }
+    });
+
     // Route to add a purchase
     app.post("/addPurchase", async (req, res) => {
       const purchase = req.body;
@@ -586,32 +615,56 @@ async function run() {
       }
     });
 
-    // Route to get all purchase items
-    app.get("/purchasesItems", async (req, res) => {
-      try {
-        const purchases = await purchaseCollection.find().toArray();
-        const items = purchases
-          .filter((purchase) => Array.isArray(purchase.items)) // Ensure items is an array
-          .flatMap((purchase) => purchase.items); // Flatten the arrays into a single array
-        res.send(items);
-      } catch (error) {
-        console.error("Error fetching purchase items:", error);
-        res.status(500).send("Internal Server Error");
+    // Route to update a purchase by ID
+    app.patch("/updatePurchase/:id", async (req, res) => {
+      const id = req.params.id;
+      const { delivery, payment } = req.body;
+
+      // Validate ObjectID
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).send({ message: "Invalid purchase ID" });
       }
-    });
-    // Route to get all purchase items by user email
-    app.get("/purchasesItems/:email", async (req, res) => {
-      const email = req.params.email;
+
+      // Check if necessary fields are present in the body
+      if (!delivery && !payment) {
+        return res.status(400).send({
+          message: "Request body must contain 'delivery' or 'payment' fields",
+        });
+      }
+
+      // Prepare the update document dynamically based on provided fields
+      const update = { $set: {} };
+      if (delivery) {
+        update.$set["delivery"] = delivery;
+        update.$set["items.$[elem].delivery"] = delivery;
+      }
+      if (payment) {
+        update.$set["payment"] = payment;
+        update.$set["items.$[elem].payment"] = payment;
+      }
+
       try {
-        const query = { userEmail: email };
-        const purchases = await purchaseCollection.find(query).toArray();
-        const items = purchases
-          .filter((purchase) => Array.isArray(purchase.items)) // Ensure items is an array
-          .flatMap((purchase) => purchase.items); // Flatten the arrays into a single array
-        res.send(items);
+        const query = { _id: new ObjectId(id) };
+        const options = {
+          arrayFilters: [
+            {
+              "elem.delivery": { $exists: true },
+              "elem.payment": { $exists: true },
+            },
+          ],
+        };
+
+        const result = await purchaseCollection.updateOne(
+          query,
+          update,
+          options
+        );
+        if (result.matchedCount === 0) {
+          return res.status(404).send({ message: "Purchase not found" });
+        }
+        res.send(result);
       } catch (error) {
-        console.error("Error fetching purchase items:", error);
-        res.status(500).send("Internal Server Error");
+        res.status(500).send({ message: "An error occurred", error });
       }
     });
 
@@ -624,7 +677,7 @@ async function run() {
         res.status(500).send({ message: "An error occurred", error });
       }
     });
-    // Route to get all payments
+    // ----------------Route to get all payments----------------------------
     app.get("/paymentInfo", async (req, res) => {
       const result = await purchaseCollection.find().toArray();
       res.send(result);
@@ -636,6 +689,26 @@ async function run() {
       const query = { userEmail: email };
       const result = await purchaseCollection.find(query).toArray();
       res.send(result);
+    });
+
+    // Route to get all payments by id
+    app.get("/singlePaymentInfo/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      // Validate ObjectID
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).send({ message: "Invalid purchase ID" });
+      }
+      const query = { _id: new ObjectId(id) };
+      try {
+        const result = await purchaseCollection.findOne(query);
+        if (!result) {
+          return res.status(404).send({ message: "Purchase not found" });
+        }
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
     });
 
     // Send a ping to confirm a successful connection---------------------------------------------------------
