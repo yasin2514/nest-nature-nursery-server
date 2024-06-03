@@ -568,6 +568,7 @@ async function run() {
     });
 
     // Route to add a purchase
+
     app.post("/addPurchase", async (req, res) => {
       const purchase = req.body;
 
@@ -587,35 +588,74 @@ async function run() {
         userCity,
         userDistrict,
         userCountry,
+        items, // Assuming 'items' is an array of objects with 'productId' and 'quantity'
       } = purchase;
 
-      if (!userEmail) {
-        return res.status(400).send({ message: "User email is required" });
-      }
-      if (!paymentMethod) {
-        return res.status(400).send({ message: "Payment method is required" });
-      }
-      if (!delivery) {
-        return res.status(400).send({ message: "Delivery is required" });
-      }
-      if (!userPhone) {
-        return res.status(400).send({ message: "User phone is required" });
-      }
-      if (!userCity) {
-        return res.status(400).send({ message: "User city is required" });
-      }
-      if (!userDistrict) {
-        return res.status(400).send({ message: "User district is required" });
-      }
-      if (!userCountry) {
-        return res.status(400).send({ message: "User country is required" });
+      if (
+        !userEmail ||
+        !paymentMethod ||
+        !delivery ||
+        !userPhone ||
+        !userCity ||
+        !userDistrict ||
+        !userCountry ||
+        !items ||
+        items.length === 0
+      ) {
+        return res.status(400).send({ message: "Required fields are missing" });
       }
 
       try {
+        // Update product quantities
+        for (const item of items) {
+          const { productId, quantity } = item;
+          const query = { _id: new ObjectId(productId) };
+          const id = new ObjectId(productId);
+
+          const product = await productCollection.findOne(query);
+
+          if (!product) {
+            return res
+              .status(404)
+              .send({ message: `Product with ID ${productId} not found` });
+          }
+
+          // Ensure product.quantity is a number
+          let currentQuantity = parseInt(product.quantity, 10);
+          if (isNaN(currentQuantity)) {
+            return res.status(400).send({
+              message: `Quantity for product ${productId} is not a number`,
+            });
+          }
+
+          if (currentQuantity < quantity) {
+            return res
+              .status(400)
+              .send({ message: `Not enough stock for product ${productId}` });
+          }
+
+          // Update product quantity
+          const updateResult = await productCollection.updateOne(
+            { _id: id },
+            { $set: { quantity: currentQuantity - quantity } }, // Set new quantity explicitly
+            { returnOriginal: false }
+          );
+
+          // Check if update was successful
+          if (updateResult.modifiedCount !== 1) {
+            throw new Error(
+              `Failed to update product quantity for productId ${productId}`
+            );
+          }
+        }
+
+        // Insert purchase into the database
         const result = await purchaseCollection.insertOne(purchase);
         res.send(result);
       } catch (error) {
-        res.status(500).send({ message: "An error occurred", error });
+        res
+          .status(500)
+          .send({ message: "An error occurred", error: error.message });
       }
     });
 
