@@ -639,7 +639,7 @@ async function run() {
         update.$set["delivery"] = delivery;
         update.$set["items.$[elem].delivery"] = delivery;
       }
-      if (payment) {
+      if (paymentStatus) {
         update.$set["paymentStatus"] = paymentStatus;
         update.$set["items.$[elem].paymentStatus"] = paymentStatus;
       }
