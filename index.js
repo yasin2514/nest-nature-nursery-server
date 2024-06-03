@@ -414,7 +414,8 @@ async function run() {
       }
 
       // Check for required fields
-      const { name, quantity, userEmail, userName, photos } = product;
+      const { name, quantity, userEmail, userName, photos, productId } =
+        product;
       if (!name) {
         return res.status(400).send({ message: "Name is required" });
       }
@@ -430,7 +431,9 @@ async function run() {
       if (!photos) {
         return res.status(400).send({ message: "Photo URL is required" });
       }
-
+      if (!productId) {
+        return res.status(400).send({ message: "ProductId is required" });
+      }
       try {
         const query = { userEmail: userEmail, name: name };
 
@@ -720,7 +723,7 @@ async function run() {
         const paymentIntent = await stripe.paymentIntents.create({
           amount: amount,
           currency: "usd",
-          payment_method_types: ["card"]
+          payment_method_types: ["card"],
         });
         res.send({ clientSecret: paymentIntent.client_secret });
       } catch (error) {
