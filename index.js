@@ -619,7 +619,7 @@ async function run() {
     // Route to update a purchase by ID
     app.patch("/updatePurchase/:id", async (req, res) => {
       const id = req.params.id;
-      const { delivery, payment } = req.body;
+      const { delivery, paymentStatus } = req.body;
 
       // Validate ObjectID
       if (!ObjectId.isValid(id)) {
@@ -627,7 +627,7 @@ async function run() {
       }
 
       // Check if necessary fields are present in the body
-      if (!delivery && !payment) {
+      if (!delivery && !paymentStatus) {
         return res.status(400).send({
           message: "Request body must contain 'delivery' or 'payment' fields",
         });
@@ -640,8 +640,8 @@ async function run() {
         update.$set["items.$[elem].delivery"] = delivery;
       }
       if (payment) {
-        update.$set["payment"] = payment;
-        update.$set["items.$[elem].payment"] = payment;
+        update.$set["paymentStatus"] = paymentStatus;
+        update.$set["items.$[elem].paymentStatus"] = paymentStatus;
       }
 
       try {
@@ -650,7 +650,7 @@ async function run() {
           arrayFilters: [
             {
               "elem.delivery": { $exists: true },
-              "elem.payment": { $exists: true },
+              "elem.paymentStatus": { $exists: true },
             },
           ],
         };
