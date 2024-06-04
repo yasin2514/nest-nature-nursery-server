@@ -662,7 +662,7 @@ async function run() {
     // Route to update a purchase by ID
     app.patch("/updatePurchase/:id", async (req, res) => {
       const id = req.params.id;
-      const { delivery, paymentStatus } = req.body;
+      const { delivery, paymentStatus, paidAmount, totalDue } = req.body;
 
       // Validate ObjectID
       if (!ObjectId.isValid(id)) {
@@ -678,6 +678,8 @@ async function run() {
 
       // Prepare the update document dynamically based on provided fields
       const update = { $set: {} };
+      update.$set["paidAmount"] = paidAmount;
+      update.$set["totalDue"] = totalDue;
       if (delivery) {
         update.$set["delivery"] = delivery;
         update.$set["items.$[elem].delivery"] = delivery;
