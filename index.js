@@ -56,6 +56,11 @@ async function run() {
 
     app.post("/jwt", (req, res) => {
       const user = req.body;
+      if (!user || Object.keys(user).length === 0){
+        return res
+          .status(400)
+          .send({ message: "Request body cannot be empty" });
+      }
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: "1h",
       });
