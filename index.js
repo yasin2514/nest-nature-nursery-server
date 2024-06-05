@@ -27,6 +27,7 @@ const verifyJWT = (req, res, next) => {
     next();
   });
 };
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.zexvqii.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -423,6 +424,14 @@ async function run() {
     // Route to get all products in a user's cart
     app.get("/cart/:email", async (req, res) => {
       const email = req.params.email;
+      if (!email) {
+        return res.status(400).send({ message: "Email parameter is required" });
+      }
+
+      const decodedEmail = req.decoded.email;
+      if (decodedEmail !== email) {
+        return res.status(403).send({ message: "Forbidden access" });
+      }
       const query = { userEmail: email };
       const result = await cartCollection.find(query).toArray();
       res.send(result);
