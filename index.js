@@ -428,7 +428,7 @@ async function run() {
         return res.status(400).send({ message: "Email parameter is required" });
       }
 
-      const decodedEmail = req.decoded.email;
+      const decodedEmail = req.decoded?.email;
       if (decodedEmail !== email) {
         return res.status(403).send({ message: "Forbidden access" });
       }
