@@ -743,7 +743,7 @@ async function run() {
 
     // Route to add a purchase
 
-    app.post("/addPurchase",verifyJWT, async (req, res) => {
+    app.post("/addPurchase", verifyJWT, async (req, res) => {
       const purchase = req.body;
 
       // Check if body is empty
@@ -834,62 +834,67 @@ async function run() {
     });
 
     // Route to update a purchase by ID
-    app.patch("/updatePurchase/:id", async (req, res) => {
-      const id = req.params.id;
-      const { delivery, paymentStatus, paidAmount, totalDue } = req.body;
+    app.patch(
+      "/updatePurchase/:id",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const { delivery, paymentStatus, paidAmount, totalDue } = req.body;
 
-      // Validate ObjectID
-      if (!ObjectId.isValid(id)) {
-        return res.status(400).send({ message: "Invalid purchase ID" });
-      }
-
-      // Check if necessary fields are present in the body
-      if (!delivery && !paymentStatus) {
-        return res.status(400).send({
-          message: "Request body must contain 'delivery' or 'payment' fields",
-        });
-      }
-
-      // Prepare the update document dynamically based on provided fields
-      const update = { $set: {} };
-      update.$set["paidAmount"] = paidAmount;
-      update.$set["totalDue"] = totalDue;
-      if (delivery) {
-        update.$set["delivery"] = delivery;
-        update.$set["items.$[elem].delivery"] = delivery;
-      }
-      if (paymentStatus) {
-        update.$set["paymentStatus"] = paymentStatus;
-        update.$set["items.$[elem].paymentStatus"] = paymentStatus;
-      }
-
-      try {
-        const query = { _id: new ObjectId(id) };
-        const options = {
-          arrayFilters: [
-            {
-              "elem.delivery": { $exists: true },
-              "elem.paymentStatus": { $exists: true },
-            },
-          ],
-        };
-
-        const result = await purchaseCollection.updateOne(
-          query,
-          update,
-          options
-        );
-        if (result.matchedCount === 0) {
-          return res.status(404).send({ message: "Purchase not found" });
+        // Validate ObjectID
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).send({ message: "Invalid purchase ID" });
         }
-        res.send(result);
-      } catch (error) {
-        res.status(500).send({ message: "An error occurred", error });
+
+        // Check if necessary fields are present in the body
+        if (!delivery && !paymentStatus) {
+          return res.status(400).send({
+            message: "Request body must contain 'delivery' or 'payment' fields",
+          });
+        }
+
+        // Prepare the update document dynamically based on provided fields
+        const update = { $set: {} };
+        update.$set["paidAmount"] = paidAmount;
+        update.$set["totalDue"] = totalDue;
+        if (delivery) {
+          update.$set["delivery"] = delivery;
+          update.$set["items.$[elem].delivery"] = delivery;
+        }
+        if (paymentStatus) {
+          update.$set["paymentStatus"] = paymentStatus;
+          update.$set["items.$[elem].paymentStatus"] = paymentStatus;
+        }
+
+        try {
+          const query = { _id: new ObjectId(id) };
+          const options = {
+            arrayFilters: [
+              {
+                "elem.delivery": { $exists: true },
+                "elem.paymentStatus": { $exists: true },
+              },
+            ],
+          };
+
+          const result = await purchaseCollection.updateOne(
+            query,
+            update,
+            options
+          );
+          if (result.matchedCount === 0) {
+            return res.status(404).send({ message: "Purchase not found" });
+          }
+          res.send(result);
+        } catch (error) {
+          res.status(500).send({ message: "An error occurred", error });
+        }
       }
-    });
+    );
 
     // Route delete all purchase items
-    app.delete("/deleteAllPurchaseItems", async (req, res) => {
+    app.delete("/deleteAllPurchaseItems", verifyJWT, async (req, res) => {
       try {
         const result = await purchaseCollection.deleteMany({});
         res.send(result);
@@ -898,14 +903,18 @@ async function run() {
       }
     });
     // ----------------Route to get all payments----------------------------
-    app.get("/paymentInfo", async (req, res) => {
+    app.get("/paymentInfo", verifyJWT, async (req, res) => {
       const result = await purchaseCollection.find().toArray();
       res.send(result);
     });
 
     // Route to get all payments by user email
-    app.get("/paymentInfo/:email", async (req, res) => {
+    app.get("/paymentInfo/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
+      const decodedEmail = req.decoded?.email;
+      if (decodedEmail !== email) {
+        return res.status(403).send({ message: "Forbidden access" });
+      }
       const query = { userEmail: email };
       const result = await purchaseCollection.find(query).toArray();
       res.send(result);
@@ -932,7 +941,7 @@ async function run() {
     // ------------------------Stripe Payment Intent API--------------------------------
 
     // Route to create a payment intent
-    app.post("/createPaymentIntent", async (req, res) => {
+    app.post("/createPaymentIntent",verifyJWT, async (req, res) => {
       const { price } = req.body;
       const amount = parseInt(price * 100); // Convert the price to cents
       try {
