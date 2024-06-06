@@ -67,6 +67,21 @@ async function run() {
       res.send({ token });
     });
 
+    // -------------------------middleware verifyAdmin---------------------------
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      try {
+        const query = { email: email };
+        const user = await userCollection.findOne(query);
+        if (user?.role !== "superAdmin" || user?.role !== "admin") {
+          res.status(403).send({ error: true, message: "Forbidden access" });
+        }
+        next();
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    };
+
     // -------------------------user api---------------------------------
     // Route to get all users
     app.get("/users", async (req, res) => {
