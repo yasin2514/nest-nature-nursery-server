@@ -154,10 +154,6 @@ async function run() {
       if (!email) {
         return res.status(400).send({ message: "Email parameter is required" });
       }
-      const decodedEmail = req.decoded?.email;
-      if (decodedEmail !== email) {
-        return res.status(403).send({ message: "Forbidden access" });
-      }
       // Check if body is empty
       if (!updateFields || Object.keys(updateFields).length === 0) {
         return res
@@ -941,7 +937,7 @@ async function run() {
     // ------------------------Stripe Payment Intent API--------------------------------
 
     // Route to create a payment intent
-    app.post("/createPaymentIntent",verifyJWT, async (req, res) => {
+    app.post("/createPaymentIntent", verifyJWT, async (req, res) => {
       const { price } = req.body;
       const amount = parseInt(price * 100); // Convert the price to cents
       try {
