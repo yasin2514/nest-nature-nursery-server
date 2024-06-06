@@ -70,10 +70,11 @@ async function run() {
     // -------------------------middleware verifyAdmin---------------------------
     const verifyAdmin = async (req, res, next) => {
       const email = req.decoded.email;
+      console.log({email});
       try {
         const query = { email: email };
         const user = await userCollection.findOne(query);
-        if (user?.role !== "superAdmin" || user?.role !== "admin") {
+        if (user?.role !== "superAdmin" && user?.role !== "admin") {
           res.status(403).send({ error: true, message: "Forbidden access" });
         }
         next();
@@ -84,7 +85,7 @@ async function run() {
 
     // -------------------------user api---------------------------------
     // Route to get all users
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
       try {
         const result = await userCollection.find().toArray();
         res.send(result);
