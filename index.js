@@ -62,7 +62,7 @@ async function run() {
           .send({ message: "Request body cannot be empty" });
       }
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "2h",
+        expiresIn: "48h",
       });
       res.send({ token });
     });
