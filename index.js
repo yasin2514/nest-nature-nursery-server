@@ -13,7 +13,7 @@ app.use(express.json());
 // jwt token middleware
 const verifyJWT = (req, res, next) => {
   const authorization = req.headers.authorization;
-  console.log({authorization})
+  console.log({ authorization });
   if (!authorization) {
     res.status(401).send({ error: true, message: "Unauthorized access" });
   }
@@ -71,16 +71,25 @@ async function run() {
     // -------------------------user api---------------------------------
     // Route to get all users
     app.get("/users", async (req, res) => {
-      const result = await userCollection.find().toArray();
-      res.send(result);
+      try {
+        const result = await userCollection.find().toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
     });
 
     // Route to get a user by email
     app.get("/user/:email", async (req, res) => {
       const email = req.params.email;
-      const query = { email: email };
-      const result = await userCollection.findOne(query);
-      res.send(result);
+
+      try {
+        const query = { email: email };
+        const result = await userCollection.findOne(query);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
     });
 
     // Route to add a user
@@ -170,6 +179,56 @@ async function run() {
           return res.status(404).send({ message: "User not found" });
         }
         res.send({ message: "User deleted successfully", result });
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
+
+    // -----------------check superAdmin,admin or user api----------------------
+    // check superAdmin
+    app.get("/users/superAdmin/:email", async (req, res) => {
+      const email = req.params.email;
+      if (!email) {
+        return res.status(400).send({ message: "Email parameter is required" });
+      }
+
+      try {
+        const query = { email: email };
+        const user = await userCollection.findOne(query);
+        const result = { admin: user?.role === "superAdmin" };
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
+    // check admin
+    app.get("/users/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      if (!email) {
+        return res.status(400).send({ message: "Email parameter is required" });
+      }
+
+      try {
+        const query = { email: email };
+        const user = await userCollection.findOne(query);
+        const result = { admin: user?.role === "admin" };
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
+    });
+    // check user
+    app.get("/users/user/:email", async (req, res) => {
+      const email = req.params.email;
+      if (!email) {
+        return res.status(400).send({ message: "Email parameter is required" });
+      }
+
+      try {
+        const query = { email: email };
+        const user = await userCollection.findOne(query);
+        const result = { admin: user?.role === "user" };
+        res.send(result);
       } catch (error) {
         res.status(500).send({ message: "An error occurred", error });
       }
