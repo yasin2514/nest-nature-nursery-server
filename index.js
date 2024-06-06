@@ -70,7 +70,6 @@ async function run() {
     // -------------------------middleware verifyAdmin---------------------------
     const verifyAdmin = async (req, res, next) => {
       const email = req.decoded.email;
-      console.log({email});
       try {
         const query = { email: email };
         const user = await userCollection.findOne(query);
