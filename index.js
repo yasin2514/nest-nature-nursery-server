@@ -195,7 +195,7 @@ async function run() {
       try {
         const query = { email: email };
         const user = await userCollection.findOne(query);
-        const result = { admin: user?.role === "superAdmin" };
+        const result = { superAdmin: user?.role === "superAdmin" };
         res.send(result);
       } catch (error) {
         res.status(500).send({ message: "An error occurred", error });
@@ -227,7 +227,7 @@ async function run() {
       try {
         const query = { email: email };
         const user = await userCollection.findOne(query);
-        const result = { admin: user?.role === "user" };
+        const result = { user: user?.role === "user" };
         res.send(result);
       } catch (error) {
         res.status(500).send({ message: "An error occurred", error });
