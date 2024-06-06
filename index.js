@@ -13,7 +13,6 @@ app.use(express.json());
 // jwt token middleware
 const verifyJWT = (req, res, next) => {
   const authorization = req.headers.authorization;
-  console.log({ authorization });
   if (!authorization) {
     res.status(401).send({ error: true, message: "Unauthorized access" });
   }
@@ -63,7 +62,7 @@ async function run() {
           .send({ message: "Request body cannot be empty" });
       }
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "1h",
+        expiresIn: "2h",
       });
       res.send({ token });
     });
@@ -186,10 +185,14 @@ async function run() {
 
     // -----------------check superAdmin,admin or user api----------------------
     // check superAdmin
-    app.get("/users/superAdmin/:email", async (req, res) => {
+    app.get("/users/superAdmin/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
       if (!email) {
         return res.status(400).send({ message: "Email parameter is required" });
+      }
+      const decodedEmail = req.decoded?.email;
+      if (decodedEmail !== email) {
+        return res.status(403).send({ message: "Forbidden access" });
       }
 
       try {
@@ -202,10 +205,14 @@ async function run() {
       }
     });
     // check admin
-    app.get("/users/admin/:email", async (req, res) => {
+    app.get("/users/admin/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
       if (!email) {
         return res.status(400).send({ message: "Email parameter is required" });
+      }
+      const decodedEmail = req.decoded?.email;
+      if (decodedEmail !== email) {
+        return res.status(403).send({ message: "Forbidden access" });
       }
 
       try {
@@ -218,10 +225,14 @@ async function run() {
       }
     });
     // check user
-    app.get("/users/user/:email", async (req, res) => {
+    app.get("/users/user/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
       if (!email) {
         return res.status(400).send({ message: "Email parameter is required" });
+      }
+      const decodedEmail = req.decoded?.email;
+      if (decodedEmail !== email) {
+        return res.status(403).send({ message: "Forbidden access" });
       }
 
       try {
@@ -497,9 +508,13 @@ async function run() {
       if (decodedEmail !== email) {
         return res.status(403).send({ message: "Forbidden access" });
       }
-      const query = { userEmail: email };
-      const result = await cartCollection.find(query).toArray();
-      res.send(result);
+      try {
+        const query = { userEmail: email };
+        const result = await cartCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "An error occurred", error });
+      }
     });
     // Route to post product in a user's cart
     app.post("/addCart", async (req, res) => {
