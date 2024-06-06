@@ -13,11 +13,12 @@ app.use(express.json());
 // jwt token middleware
 const verifyJWT = (req, res, next) => {
   const authorization = req.headers.authorization;
+  console.log({authorization})
   if (!authorization) {
     res.status(401).send({ error: true, message: "Unauthorized access" });
   }
   // bearer token
-  const token = authorization.split(" ")[1];
+  const token = authorization?.split(" ")[1];
 
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
     if (err) {
@@ -56,7 +57,7 @@ async function run() {
 
     app.post("/jwt", (req, res) => {
       const user = req.body;
-      if (!user || Object.keys(user).length === 0){
+      if (!user || Object.keys(user).length === 0) {
         return res
           .status(400)
           .send({ message: "Request body cannot be empty" });
@@ -427,7 +428,7 @@ async function run() {
       }
     });
     // Route to get all products in a user's cart
-    app.get("/cart/:email", async (req, res) => {
+    app.get("/cart/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
       if (!email) {
         return res.status(400).send({ message: "Email parameter is required" });
