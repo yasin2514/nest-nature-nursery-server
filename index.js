@@ -94,9 +94,12 @@ async function run() {
     });
 
     // Route to get a user by email
-    app.get("/user/:email", async (req, res) => {
+    app.get("/user/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
-
+      const decodedEmail = req.decoded?.email;
+      if (decodedEmail !== email) {
+        return res.status(403).send({ message: "Forbidden access" });
+      }
       try {
         const query = { email: email };
         const result = await userCollection.findOne(query);
@@ -143,7 +146,7 @@ async function run() {
       }
     });
     // Route to update a user by email
-    app.patch("/updateUser/:email", async (req, res) => {
+    app.patch("/updateUser/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
       const updateFields = req.body;
 
@@ -151,7 +154,10 @@ async function run() {
       if (!email) {
         return res.status(400).send({ message: "Email parameter is required" });
       }
-
+      const decodedEmail = req.decoded?.email;
+      if (decodedEmail !== email) {
+        return res.status(403).send({ message: "Forbidden access" });
+      }
       // Check if body is empty
       if (!updateFields || Object.keys(updateFields).length === 0) {
         return res
@@ -180,23 +186,34 @@ async function run() {
     });
 
     // Route to delete a user by email
-    app.delete("/deleteUser/:email", async (req, res) => {
-      const email = req.params.email;
-      // Validate the email parameter
-      if (!email) {
-        return res.status(400).send({ message: "Email parameter is required" });
-      }
-      try {
-        const query = { email: email };
-        const result = await userCollection.deleteOne(query);
-        if (result.deletedCount === 0) {
-          return res.status(404).send({ message: "User not found" });
+    app.delete(
+      "/deleteUser/:email",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const email = req.params.email;
+        // Validate the email parameter
+        if (!email) {
+          return res
+            .status(400)
+            .send({ message: "Email parameter is required" });
         }
-        res.send({ message: "User deleted successfully", result });
-      } catch (error) {
-        res.status(500).send({ message: "An error occurred", error });
+        const decodedEmail = req.decoded?.email;
+        if (decodedEmail !== email) {
+          return res.status(403).send({ message: "Forbidden access" });
+        }
+        try {
+          const query = { email: email };
+          const result = await userCollection.deleteOne(query);
+          if (result.deletedCount === 0) {
+            return res.status(404).send({ message: "User not found" });
+          }
+          res.send({ message: "User deleted successfully", result });
+        } catch (error) {
+          res.status(500).send({ message: "An error occurred", error });
+        }
       }
-    });
+    );
 
     // -----------------check superAdmin,admin or user api----------------------
     // check superAdmin
@@ -287,20 +304,28 @@ async function run() {
     });
 
     // Route to get all products uploaded by a specific email
-    app.get("/products/uploadedBy/:email", async (req, res) => {
-      const email = req.params.email;
-
-      try {
-        const query = { uploadByEmail: email };
-        const products = await productCollection.find(query).toArray();
-        res.send(products);
-      } catch (error) {
-        res.status(500).send({ message: "An error occurred", error });
+    app.get(
+      "/products/uploadedBy/:email",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const email = req.params.email;
+        const decodedEmail = req.decoded?.email;
+        if (decodedEmail !== email) {
+          return res.status(403).send({ message: "Forbidden access" });
+        }
+        try {
+          const query = { uploadByEmail: email };
+          const products = await productCollection.find(query).toArray();
+          res.send(products);
+        } catch (error) {
+          res.status(500).send({ message: "An error occurred", error });
+        }
       }
-    });
+    );
 
     // Route to add a product
-    app.post("/addProduct", async (req, res) => {
+    app.post("/addProduct", verifyJWT, verifyAdmin, async (req, res) => {
       const product = req.body;
 
       // Check if body is empty
@@ -361,60 +386,70 @@ async function run() {
     });
 
     // Route to partially update a product by ID
-    app.patch("/updateProduct/:id", async (req, res) => {
-      const id = req.params.id;
-      const updateFields = req.body;
+    app.patch(
+      "/updateProduct/:id",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const updateFields = req.body;
 
-      // Validate ObjectID
-      if (!ObjectId.isValid(id)) {
-        return res.status(400).send({ message: "Invalid product ID" });
-      }
+        // Validate ObjectID
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).send({ message: "Invalid product ID" });
+        }
 
-      // Check if body is empty
-      if (!updateFields || Object.keys(updateFields).length === 0) {
-        return res
-          .status(400)
-          .send({ message: "Request body cannot be empty" });
-      }
+        // Check if body is empty
+        if (!updateFields || Object.keys(updateFields).length === 0) {
+          return res
+            .status(400)
+            .send({ message: "Request body cannot be empty" });
+        }
 
-      // Prepare the update document dynamically based on provided fields
-      const update = { $set: {} };
-      for (const field in updateFields) {
-        if (updateFields.hasOwnProperty(field)) {
-          update.$set[field] = updateFields[field];
+        // Prepare the update document dynamically based on provided fields
+        const update = { $set: {} };
+        for (const field in updateFields) {
+          if (updateFields.hasOwnProperty(field)) {
+            update.$set[field] = updateFields[field];
+          }
+        }
+
+        try {
+          const query = { _id: new ObjectId(id) };
+          const result = await productCollection.updateOne(query, update);
+          if (result.matchedCount === 0) {
+            return res.status(404).send({ message: "Product not found" });
+          }
+          res.send(result);
+        } catch (error) {
+          res.status(500).send({ message: "An error occurred", error });
         }
       }
-
-      try {
-        const query = { _id: new ObjectId(id) };
-        const result = await productCollection.updateOne(query, update);
-        if (result.matchedCount === 0) {
-          return res.status(404).send({ message: "Product not found" });
-        }
-        res.send(result);
-      } catch (error) {
-        res.status(500).send({ message: "An error occurred", error });
-      }
-    });
+    );
 
     // Route to delete a product by ID
-    app.delete("/deleteProduct/:id", async (req, res) => {
-      const id = req.params.id;
-      // Validate ObjectID
-      if (!ObjectId.isValid(id)) {
-        return res.status(400).send({ message: "Invalid product ID" });
-      }
-      try {
-        const query = { _id: new ObjectId(id) };
-        const result = await productCollection.deleteOne(query);
-        if (result.deletedCount === 0) {
-          return res.status(404).send({ message: "Product not found" });
+    app.delete(
+      "/deleteProduct/:id",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        // Validate ObjectID
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).send({ message: "Invalid product ID" });
         }
-        res.send(result);
-      } catch (error) {
-        res.status(500).send({ message: "An error occurred", error });
+        try {
+          const query = { _id: new ObjectId(id) };
+          const result = await productCollection.deleteOne(query);
+          if (result.deletedCount === 0) {
+            return res.status(404).send({ message: "Product not found" });
+          }
+          res.send(result);
+        } catch (error) {
+          res.status(500).send({ message: "An error occurred", error });
+        }
       }
-    });
+    );
     // ---------------------------product category api--------------------------------
     // Route to get product categories with total product count
     app.get("/products/groupedByCategory", async (req, res) => {
@@ -490,7 +525,7 @@ async function run() {
 
     // ---------------------------User product cart  api--------------------------------
     // Route to get all products in the cart
-    app.get("/cart", async (req, res) => {
+    app.get("/cart", verifyJWT, async (req, res) => {
       const result = await cartCollection.find().toArray();
       res.send(result);
     });
@@ -532,7 +567,7 @@ async function run() {
       }
     });
     // Route to post product in a user's cart
-    app.post("/addCart", async (req, res) => {
+    app.post("/addCart", verifyJWT, async (req, res) => {
       const product = req.body;
       const totalAmount = product.quantity * product.price;
       product.totalAmount = totalAmount;
@@ -631,7 +666,7 @@ async function run() {
     });
 
     // Route to delete a product from a user's cart
-    app.delete("/deleteCart/:id", async (req, res) => {
+    app.delete("/deleteCart/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       // Validate the id parameter
       if (!id) {
@@ -650,11 +685,15 @@ async function run() {
     });
 
     // Route to delete all products from a user's cart
-    app.delete("/deleteUserCartItems/:email", async (req, res) => {
+    app.delete("/deleteUserCartItems/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
       // Validate the email parameter
       if (!email) {
         return res.status(400).send({ message: "Email parameter is required" });
+      }
+      const decodedEmail = req.decoded?.email;
+      if (decodedEmail !== email) {
+        return res.status(403).send({ message: "Forbidden access" });
       }
       try {
         const query = { userEmail: email };
@@ -670,7 +709,7 @@ async function run() {
 
     // -------------------------purchase and payment api---------------------------------
     // Route to get all purchase items
-    app.get("/purchasesItems", async (req, res) => {
+    app.get("/purchasesItems", verifyJWT, async (req, res) => {
       try {
         const purchases = await purchaseCollection.find().toArray();
         const items = purchases
@@ -683,8 +722,12 @@ async function run() {
       }
     });
     // Route to get all purchase items by user email
-    app.get("/purchasesItems/:email", async (req, res) => {
+    app.get("/purchasesItems/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
+      const decodedEmail = req.decoded?.email;
+      if (decodedEmail !== email) {
+        return res.status(403).send({ message: "Forbidden access" });
+      }
       try {
         const query = { userEmail: email };
         const purchases = await purchaseCollection.find(query).toArray();
@@ -700,7 +743,7 @@ async function run() {
 
     // Route to add a purchase
 
-    app.post("/addPurchase", async (req, res) => {
+    app.post("/addPurchase",verifyJWT, async (req, res) => {
       const purchase = req.body;
 
       // Check if body is empty
